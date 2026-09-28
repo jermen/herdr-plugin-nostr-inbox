@@ -60,6 +60,7 @@ downgrading a more advanced state). Nothing else changes state implicitly.
 | --- | --- |
 | `↑`/`↓`, `j`/`k` | select a message; scroll in the message view |
 | `enter`, `o` | open the message (marks it read) |
+| `i` | paste the message reference (`nostr:nevent1…`) into the prompt under the popup and close |
 | `r` | reply (`$VISUAL`/`$EDITOR` if set, otherwise one line), confirmed with `y` |
 | `p` then `r`/`i`/`d` | public state: read, in progress, done |
 | `s` then `r`/`t`/`i`/`d` | private state: read, todo, in progress, done |
@@ -68,6 +69,16 @@ downgrading a more advanced state). Nothing else changes state implicitly.
 | `a` | show or hide your sent messages (their public state comes from the recipient) |
 | `g`, `F5` | reload from the relays |
 | `esc`, `q` | back to the list; quit |
+
+To hand a message to an agent, type e.g. `Process message ` in its prompt,
+press `prefix+m`, select the message and press `i`: the popup closes and the
+prompt reads `Process message nostr:nevent1… `. `nostr-agent` accepts that
+reference wherever it takes a message id, so an agent can load the message,
+reply to it, or record a ticket it created with
+`nostr-agent state private <ref> in-progress --ticket <KEY>`. The reference is
+typed into the pane the popup was opened over (Herdr's `pane send-text`; no
+Enter is sent) and is also shown in the message view. It needs a `nostr-agent`
+that returns message references.
 
 Each action runs `nostr-agent`, which re-reads the relays first, so it can take
 a few seconds; the footer shows progress, relay warnings and errors. Message
