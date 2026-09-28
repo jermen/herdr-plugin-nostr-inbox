@@ -210,6 +210,24 @@ def herdr_command():
     return os.environ.get("HERDR_BIN_PATH") or shutil.which("herdr") or "herdr"
 
 
+def prompt_pane():
+    """The tiled pane the popup was opened over, normally the agent's prompt."""
+    try:
+        context = json.loads(os.environ.get("HERDR_PLUGIN_CONTEXT_JSON") or "{}")
+    except ValueError:
+        return None
+    pane = context.get("focused_pane_id") if isinstance(context, dict) else None
+    return pane if isinstance(pane, str) and pane else None
+
+
+def paste_to_pane(pane, text):
+    """Types text into the pane without Enter, like a paste into its prompt."""
+    proc = subprocess.run([herdr_command(), "pane", "send-text", pane, text],
+                          capture_output=True, text=True, timeout=10, check=False)
+    if proc.returncode != 0:
+        raise AgentError((proc.stderr or proc.stdout).strip() or f"herdr exited with {proc.returncode}")
+
+
 def toast(config, message):
     title = f"Nostr: {sender_label(message)}"
     body = headline(message)

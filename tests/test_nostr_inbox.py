@@ -102,6 +102,31 @@ class TextTest(unittest.TestCase):
         self.assertLessEqual(len(label), 20)
 
 
+class PromptPasteTest(unittest.TestCase):
+    def setUp(self):
+        self.fake = FakeAgent()
+        self.addCleanup(self.fake.close)
+
+    def context(self, value):
+        os.environ["HERDR_PLUGIN_CONTEXT_JSON"] = value
+        self.addCleanup(os.environ.pop, "HERDR_PLUGIN_CONTEXT_JSON", None)
+
+    def test_prompt_pane_comes_from_the_popup_context(self):
+        self.context(json.dumps({"workspace_id": "w1", "focused_pane_id": "w1:p2", "focused_pane_agent": "claude"}))
+        self.assertEqual(core.prompt_pane(), "w1:p2")
+        for broken in ("", "{", "[]", json.dumps({"focused_pane_id": ""}), json.dumps({"focused_pane_id": 3})):
+            self.context(broken)
+            self.assertIsNone(core.prompt_pane(), broken)
+
+    def test_paste_types_the_text_without_enter(self):
+        core.paste_to_pane("w1:p2", "nostr:nevent1abc ")
+        self.assertEqual(self.fake.herdr_calls(), [["pane", "send-text", "w1:p2", "nostr:nevent1abc "]])
+        os.environ["FAKE_HERDR_EXIT"] = "1"
+        self.addCleanup(os.environ.pop, "FAKE_HERDR_EXIT")
+        with self.assertRaises(core.AgentError):
+            core.paste_to_pane("w1:p2", "x")
+
+
 class WatcherTest(unittest.TestCase):
     def test_only_new_unread_incoming_messages_after_start_are_announced(self):
         messages = [

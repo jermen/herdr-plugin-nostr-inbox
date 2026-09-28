@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FAKE_AGENT = Path(__file__).resolve().parent / "fake_nostr_agent.py"
+FAKE_HERDR = Path(__file__).resolve().parent / "fake_herdr.py"
 sys.path.insert(0, str(ROOT))
 
 ALICE = "a" * 64
@@ -18,6 +19,7 @@ def message(message_id, sender=ALICE, content="Restart db02", created_at=1790000
             public_state="unread", private_state=None, ticket_id=None, alias="alice", subject=None):
     return {
         "id": message_id,
+        "ref": "nostr:nevent1" + message_id[:20],
         "sender": sender,
         "sender_npub": "npub1" + sender[:58],
         "sender_alias": alias,
@@ -50,10 +52,13 @@ class FakeAgent:
     def __init__(self, messages=None, relay_status=None, config=None):
         self.tmp = tempfile.TemporaryDirectory(prefix="nostr-inbox-test-")
         base = Path(self.tmp.name)
-        FAKE_AGENT.chmod(FAKE_AGENT.stat().st_mode | stat.S_IXUSR)
+        for script in (FAKE_AGENT, FAKE_HERDR):
+            script.chmod(script.stat().st_mode | stat.S_IXUSR)
         self.fixture = base / "fixture.json"
         self.log = base / "calls.log"
         self.log.touch()
+        self.herdr_log = base / "herdr.log"
+        self.herdr_log.touch()
         data = {"messages": messages if messages is not None else fixture_messages()}
         if relay_status is not None:
             data["relay_status"] = relay_status
@@ -67,9 +72,14 @@ class FakeAgent:
             "HERDR_PLUGIN_STATE_DIR": str(base / "state"),
             "FAKE_AGENT_FIXTURE": str(self.fixture),
             "FAKE_AGENT_LOG": str(self.log),
+            "FAKE_HERDR_LOG": str(self.herdr_log),
+            "HERDR_BIN_PATH": str(FAKE_HERDR),
         }
         self.saved = {key: os.environ.get(key) for key in self.env}
         os.environ.update(self.env)
+
+    def herdr_calls(self):
+        return [json.loads(line) for line in self.herdr_log.read_text().splitlines()]
 
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()]

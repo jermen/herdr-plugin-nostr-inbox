@@ -28,8 +28,8 @@ STATE_LABELS = {
 }
 PUBLIC_KEYS = {"r": "read", "i": "in_progress", "d": "done"}
 PRIVATE_KEYS = {"r": "read", "t": "todo", "i": "in_progress", "d": "done"}
-LIST_HELP = "enter open  r reply  p public  s private  t ticket  T clear ticket  a sent  g reload  q quit"
-DETAIL_HELP = "esc back  r reply  p public  s private  t ticket  T clear ticket  j/k scroll  q back"
+LIST_HELP = "enter open  i paste ref  r reply  p public  s private  t ticket  T clear ticket  a sent  g reload  q quit"
+DETAIL_HELP = "esc back  i paste ref  r reply  p public  s private  t ticket  T clear ticket  j/k scroll  q back"
 ENTRY_HEIGHT = 4
 
 
@@ -160,6 +160,9 @@ def detail_lines(message, width):
         state += f"   Ticket: {core.printable(message['ticket_id'], 64)}"
     header.append(state)
     lines = [clip(line, width) for line in header]
+    if message.get("ref"):
+        # Wrapped rather than clipped, so it can still be copied by hand.
+        lines.extend(wrap("Ref: " + core.printable(message["ref"]), width))
     lines.append("─" * max(width, 0))
     return lines + wrap(message.get("content"), width)
 
@@ -329,6 +332,27 @@ class App:
             accepted = [r for r in result.get("recipient_relays", []) if r.get("ok")]
             self.set_notice(f"Reply sent; accepted by {len(accepted)} of {len(result.get('recipient_relays', []))} relays")
 
+    def paste_ref(self):
+        """Pastes the message reference into the prompt under the popup.
+        Returns True when the popup should close."""
+        message = self.current()
+        if not message:
+            return False
+        ref = message.get("ref")
+        if not ref:
+            self.set_notice("This nostr-agent gives no message references; update it", error=True)
+            return False
+        pane = core.prompt_pane()
+        if not pane:
+            self.set_notice(f"No prompt pane known; reference: {ref}", error=True)
+            return False
+        try:
+            core.paste_to_pane(pane, ref + " ")
+        except (core.AgentError, OSError, subprocess.SubprocessError) as err:
+            self.set_notice(f"Paste failed ({err}); reference: {ref}", error=True)
+            return False
+        return True
+
     def compose(self):
         editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
         if not editor:
@@ -478,6 +502,8 @@ class App:
                 self.selected = max(self.selected - 3, 0)
         elif key in ("\n", "\r", "o", curses.KEY_ENTER) and not detail:
             self.open_current()
+        elif key == "i":
+            return not self.paste_ref()
         elif key == "r":
             self.reply()
         elif key == "p":

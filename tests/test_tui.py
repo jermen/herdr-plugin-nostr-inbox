@@ -1,3 +1,4 @@
+import json
 import os
 import pty
 import select
@@ -51,6 +52,11 @@ class RenderTest(unittest.TestCase):
         self.assertIn("Subject: Topic", text)
         self.assertIn("Public: UNREAD   Private: TODO   Ticket: DMDOX-330", text)
         self.assertEqual(lines[-1], "Restart db02")
+        self.assertIn("Ref: nostr:nevent1", text)
+        long_ref = dict(entry, ref="nostr:nevent1" + "q" * 90)
+        ref_lines = [line for line in tui.detail_lines(long_ref, 40) if "q" in line]
+        self.assertGreater(len(ref_lines), 1)
+        self.assertTrue(all(tui.display_width(line) <= 40 for line in ref_lines))
 
     def test_summary_counts_unread_and_relays(self):
         messages = [message("1" * 64), message("2" * 64, public_state="read")]
@@ -61,9 +67,14 @@ class RenderTest(unittest.TestCase):
 class PopupSmokeTest(unittest.TestCase):
     """Drives the curses UI in a pseudo-terminal against the fake CLI."""
 
+    context = {"workspace_id": "w1", "focused_pane_id": "w1:p1", "focused_pane_agent": "claude"}
+
     def setUp(self):
         self.fake = FakeAgent()
         self.addCleanup(self.fake.close)
+        if self.context is not None:
+            os.environ["HERDR_PLUGIN_CONTEXT_JSON"] = json.dumps(self.context)
+            self.addCleanup(os.environ.pop, "HERDR_PLUGIN_CONTEXT_JSON", None)
         pid, fd = pty.fork()
         if pid == 0:
             os.environ.update({"TERM": "xterm-256color", "LINES": "30", "COLUMNS": "100"})
@@ -126,6 +137,30 @@ class PopupSmokeTest(unittest.TestCase):
         self.assertEqual((data[first]["public_state"], data[first]["private_state"], data[first]["ticket_id"]),
                          ("in_progress", "in_progress", "DMDOX-331"))
         self.assertIsNone(data[second]["ticket_id"])
+
+    def test_paste_ref_types_it_into_the_prompt_and_closes(self):
+        self.read_until(lambda: b"alice" in self.output)
+        self.send("ji")
+        _, status = os.waitpid(self.pid, 0)
+        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+        self.assertEqual(self.fake.herdr_calls(), [["pane", "send-text", "w1:p1", "nostr:nevent1" + "1" * 20 + " "]])
+        self.assertNotIn(["message", "open", "1" * 64], self.fake.calls())
+
+
+class PopupWithoutPromptTest(PopupSmokeTest):
+    context = None
+
+    def test_open_state_ticket_and_reply_go_through_the_cli(self):
+        pass
+
+    def test_paste_ref_types_it_into_the_prompt_and_closes(self):
+        self.read_until(lambda: b"alice" in self.output)
+        self.send("ji")
+        self.read_until(lambda: b"No prompt pane known" in self.output)
+        self.assertEqual(self.fake.herdr_calls(), [])
+        self.send("q")
+        _, status = os.waitpid(self.pid, 0)
+        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
 
 
 if __name__ == "__main__":
