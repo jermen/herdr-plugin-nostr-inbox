@@ -1,8 +1,7 @@
 # Herdr Nostr Inbox
 
-[DMDOX-330](https://dmdox.atlassian.net/browse/DMDOX-330): Nostr messages in
-Herdr — an unread count in the tab bar, an inbox popup on `prefix+m`, and the
-two message-state dimensions of
+Nostr messages in Herdr — an unread count in the tab bar, an inbox popup on
+`prefix+m`, and the two message-state dimensions of
 [`nostr-agent`](https://github.com/jermen/nostr-agent-comms). Python 3.9+
 (installer 3.11+), Linux/macOS, Herdr 0.9.1+. No pip/npm dependencies.
 
@@ -79,8 +78,19 @@ nothing in a message triggers an action.
 
 Requires the `nostr-agent` CLI with a configured identity
 (see [nostr-agent-comms](https://github.com/jermen/nostr-agent-comms)); check
-with `nostr-agent inbox count --json`. From a complete checkout at a stable
-location, on the machine running Herdr:
+with `nostr-agent inbox count --json`. On the machine running Herdr:
+
+```sh
+herdr plugin install jermen/herdr-plugin-nostr-inbox --yes
+herdr plugin action invoke configure --plugin jermen.nostr-inbox
+```
+
+`configure` runs `install.py --no-link` inside the installed checkout; the
+result is logged by `herdr plugin log list --plugin jermen.nostr-inbox`.
+Reinstalling with `herdr plugin install` updates the checkout in place, and the
+status entry keeps pointing to it. For development, or to pass options, run the
+installer from a clone instead (`herdr plugin uninstall jermen.nostr-inbox`
+first); it then links that clone:
 
 ```sh
 ./install.sh --dry-run   # show the config diff, change nothing
@@ -90,14 +100,15 @@ location, on the machine running Herdr:
 The installer backs up `config.toml` under
 `$XDG_STATE_HOME/herdr-nostr-inbox/backups/`, inserts two managed blocks —
 the `tab_bar_right` status entry under `[ui]` and a `[[keys.command]]` binding
-for `prefix+m` — links the plugin, starts the watcher and reloads the server
+for `prefix+m` — links the plugin (unless it runs from the installed checkout),
+starts the watcher and reloads the server
 config. Then use Herdr's global menu → **reload config** in the UI. It refuses
 to overwrite an existing `ui.tab_bar_right` or a key that is already bound and
 prints the entry to add by hand instead. Options: `--key`, `--interval`,
-`--timeout`, `--config PATH`, `--no-link` (config only, for a separate UI
-computer) and `--uninstall` (removes the blocks and unlinks; backups remain).
-Reinstalling is idempotent; after moving the checkout, run it again to relink
-and rewrite the status command path.
+`--timeout`, `--config PATH`, `--no-link` (config only: for the installed
+checkout or a separate UI computer) and `--uninstall` (removes the blocks and
+unlinks; backups remain). Running it again is idempotent; after moving a linked
+clone, run it again to relink and rewrite the status command path.
 The plugin was called `jermen.nostr-index` before; installing replaces that
 id's config blocks, stops its watcher and unlinks it.
 
