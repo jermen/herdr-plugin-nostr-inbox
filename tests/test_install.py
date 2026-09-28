@@ -1,4 +1,5 @@
 import shlex
+import tempfile
 import tomllib
 import unittest
 from pathlib import Path
@@ -81,6 +82,29 @@ class CandidateTest(unittest.TestCase):
         self.assertEqual(shlex.split(command)[1], "/home/u/Documents/dmDOX, s.r.o./Dev/plugin/nostr_inbox.py")
         parsed = tomllib.loads(install.candidate("", command="python3 'a, b.c/x y' status"))
         self.assertEqual(parsed["ui"]["tab_bar_right"][0]["command"], "python3 'a, b.c/x y' status")
+
+
+class InstalledCheckoutTest(unittest.TestCase):
+    def run_install(self, registered_root):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.toml"
+            config.write_text('[ui]\nagent_panel_sort = "priority"\n')
+            with mock.patch.object(install, "linked_root", return_value=registered_root), \
+                    mock.patch.object(install, "herdr") as herdr, \
+                    mock.patch.object(install, "backup_root", return_value=Path(directory) / "backups"), \
+                    mock.patch("sys.stdout"):
+                self.assertEqual(install.main(["--no-link", "--config", str(config)]), 0)
+                self.assertIn("nostr-inbox tab bar block", config.read_text())
+            return [call.args for call in herdr.call_args_list]
+
+    def test_configure_in_the_installed_checkout_starts_without_linking(self):
+        calls = self.run_install(str(install.ROOT))
+        self.assertIn(("plugin", "action", "invoke", "start", "--plugin", install.PLUGIN_ID), calls)
+        self.assertFalse([c for c in calls if c[:2] in (("plugin", "link"), ("plugin", "unlink"))])
+
+    def test_config_only_install_elsewhere_does_not_start(self):
+        calls = self.run_install(None)
+        self.assertEqual(calls, [("server", "reload-config")])
 
 
 if __name__ == "__main__":

@@ -245,6 +245,8 @@ def install(args):
         if current != str(ROOT):
             herdr("plugin", "link", str(ROOT), check=True)
             print(f"linked {ROOT}")
+    if not args.no_link or current == str(ROOT):
+        # Also for `herdr plugin install`: the registered root is this checkout.
         herdr("plugin", "action", "invoke", "start", "--plugin", PLUGIN_ID)
     if herdr("server", "reload-config").returncode == 0:
         print("server config reloaded")
