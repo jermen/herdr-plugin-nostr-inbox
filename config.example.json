@@ -1,0 +1,12 @@
+{
+  "nostr_agent": null,
+  "limit": null,
+  "command_timeout": 90,
+  "icon": "✉",
+  "show_zero": false,
+  "mark_partial": true,
+  "toast": true,
+  "toast_sound": "none",
+  "poll_seconds": 300,
+  "show_sent": false
+}

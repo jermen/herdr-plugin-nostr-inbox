@@ -1,0 +1,32 @@
+id = "jermen.nostr-inbox"
+name = "Nostr Inbox"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Nostr messages via nostr-agent: unread count, inbox popup, public/private message state."
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["python3", "nostr_inbox.py", "watch", "--detach"]
+
+[[actions]]
+id = "open"
+title = "Open Nostr inbox"
+command = ["python3", "nostr_inbox.py", "open"]
+
+[[actions]]
+id = "start"
+title = "Start Nostr toast watcher"
+command = ["python3", "nostr_inbox.py", "watch", "--detach"]
+
+[[actions]]
+id = "stop"
+title = "Stop Nostr toast watcher"
+command = ["python3", "nostr_inbox.py", "stop"]
+
+[[panes]]
+id = "inbox"
+title = "Messages"
+placement = "popup"
+width = "80%"
+height = "80%"
+command = ["python3", "nostr_inbox.py", "tui"]
