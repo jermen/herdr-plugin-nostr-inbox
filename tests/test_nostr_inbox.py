@@ -36,6 +36,14 @@ class AdapterTest(unittest.TestCase):
         with self.assertRaisesRegex(core.AgentError, "forward-only"):
             core.set_state(self.config, "public", "2" * 64, "read")
 
+    def test_old_cli_is_named_instead_of_dumping_its_usage(self):
+        os.environ["FAKE_AGENT_OLD"] = "1"
+        self.addCleanup(os.environ.pop, "FAKE_AGENT_OLD")
+        with self.assertRaises(core.AgentError) as caught:
+            core.open_message(self.config, "1" * 64)
+        self.assertEqual(str(caught.exception),
+                         f"{self.config['nostr_agent']} is too old for 'message'; update nostr-agent-comms")
+
     def test_reply_passes_text_on_stdin(self):
         core.reply(self.config, "1" * 64, "on it")
         self.assertEqual(self.fake.data()["replies"], [{"to": "1" * 64, "text": "on it"}])

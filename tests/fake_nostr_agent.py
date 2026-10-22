@@ -23,6 +23,8 @@ def main():
         log.write(json.dumps(args) + "\n")
     if os.environ.get("FAKE_AGENT_FAIL"):
         fail("relays unreachable")
+    if os.environ.get("FAKE_AGENT_OLD") and args[0] in ("message", "state"):
+        fail(f"unknown command '{args[0]}'\n\nagent-nostr - NIP-17 CLI for public-relay agent messaging\n\nUsage: ...")
     if "--limit" in args:
         index = args.index("--limit")
         del args[index:index + 2]

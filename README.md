@@ -93,7 +93,9 @@ nothing in a message triggers an action.
 
 Requires the `nostr-agent` CLI with a configured identity
 (see [nostr-agent-comms](https://github.com/jermen/nostr-agent-comms)); check
-with `nostr-agent inbox count --json`. On the machine running Herdr:
+with `nostr-agent inbox count --json`. The older `agent-nostr` CLI from before
+the rename has no `message` or `state` commands, so messages can be read but
+not marked. On the machine running Herdr:
 
 ```sh
 herdr plugin install jermen/herdr-plugin-nostr-inbox --yes
