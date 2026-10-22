@@ -5,6 +5,10 @@ Nostr messages in Herdr — an unread count in the tab bar, an inbox popup on
 [`nostr-agent`](https://github.com/jermen/nostr-agent-comms). Python 3.9+
 (installer 3.11+), Linux/macOS, Herdr 0.9.1+. No pip/npm dependencies.
 
+![The unread count in the tab bar, the inbox popup on prefix+m and an opened message](docs/inbox.gif)
+
+*A demo session against a local test relay.*
+
 ```text
  Messages · 2 unread · relays 3/3
  ● alice                                              2026-09-27 21:03
