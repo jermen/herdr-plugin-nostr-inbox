@@ -111,9 +111,13 @@ def run_agent(config, args, input_text=None):
         message = proc.stderr.strip() or f"exit status {proc.returncode}"
         try:
             parsed = json.loads(proc.stderr)
-            message = parsed.get("error") or message
+            # The CLI's usage text, if any, follows the first line.
+            message = (parsed.get("error") or message).splitlines()[0]
         except ValueError:
             pass
+        if message.startswith("unknown command"):
+            # The pre-rename agent-nostr CLI has no message or state commands.
+            message = f"{command[0]} is too old for '{args[0]}'; update nostr-agent-comms"
         raise AgentError(message)
     try:
         return json.loads(proc.stdout)
